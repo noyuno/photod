@@ -17,6 +17,7 @@ token_url = "https://www.googleapis.com/oauth2/v4/token"
 scope = ['https://www.googleapis.com/auth/photoslibrary.readonly']
 redirect_response = None
 google = None
+token = None
 
 def check_environ(keys, header):
     ret = False
@@ -86,8 +87,8 @@ def scheduler(loop):
 
 def refresh_token():
     try:
-        global token_url, google
-        token = google.refresh_token(token_url)
+        global token_url, google, token
+        token = google.refresh_token(token_url, refresh_token=token)
         print('refreshed. token={0}'.format(token))
     except Exception as e:
         err = e.with_traceback(sys.exc_info()[2])
