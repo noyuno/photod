@@ -143,7 +143,7 @@ if __name__ == '__main__':
         # debug
         print('authorized. token={0}'.format(token))
         # get userid
-        userinfo = google.get('https://www.googleapis.com/oauth2/v1/userinfo').json()
+        userinfo = google.get('https://people.googleapis.com/v1/people/me').json()
         print(userinfo)
         r = google.get('https://photoslibrary.googleapis.com/v1/albums').json()
         text = '{0} albums found\n'.format(len(r.get('albums')))
