@@ -57,7 +57,7 @@ class APIHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('content-type', 'text')
             self.end_headers()
-            self.wfile.write('<body onload="setTimeout(\'window.close()\', 1000)">authorized. closing automecally.<br><br>photod</body>'.encode('utf-8'))
+            self.wfile.write('authorized. close this tab.\n\nphotod'.encode('utf-8'))
         else:
             self.send_response(501)
             self.send_header('content-type', 'text')
@@ -92,7 +92,7 @@ def refresh_token():
             'client_id': os.environ.get('GOOGLE_OAUTH_CLIENT'),
             'client_secret': os.environ.get('GOOGLE_OAUTH_SECRET')
         }
-        token = google.refresh_token(token_url, refresh_token=token, **extra)
+        token = google.refresh_token(token_url, refresh_token=token['access_token'], **extra)
         print('refreshed. token={0}'.format(token))
     except Exception as e:
         err = e.with_traceback(sys.exc_info()[2])
