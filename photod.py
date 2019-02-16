@@ -142,6 +142,9 @@ if __name__ == '__main__':
                                    authorization_response=redirect_response)
         # debug
         print('authorized. token={0}'.format(token))
+        # get userid
+        userinfo = google.get('https://www.googleapis.com/oauth2/v1/userinfo').json()
+        print(userinfo)
         r = google.get('https://photoslibrary.googleapis.com/v1/albums').json()
         text = '{0} albums found\n'.format(len(r.get('albums')))
         for album in r.get('albums'):
@@ -152,6 +155,7 @@ if __name__ == '__main__':
         s3 = boto3.resource('s3')
         for bucket in s3.buckets.all():
             message(bucket.name)
+
 
     except Exception as e:
         err = e.with_traceback(sys.exc_info()[2])
