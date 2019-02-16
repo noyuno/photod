@@ -10,6 +10,7 @@ import threading
 import time
 import json
 import schedule
+import boto3
 
 callback_uri = '/callback'
 authorization_base_url = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -79,13 +80,13 @@ def httpserver(loop):
 def scheduler(loop):
     asyncio.set_event_loop(loop)
     print('launch scheduler')
-    schedule.every(2).minutes.do(refresh_token)
+    schedule.every(24).hour.do(refresh_token_backup)
 
     while True:
         schedule.run_pending()
         time.sleep(1)
 
-def refresh_token():
+def refresh_token_backup():
     try:
         global token_url, google, token
         extra = {
@@ -94,6 +95,9 @@ def refresh_token():
         }
         token = google.refresh_token(token_url, refresh_token=token['access_token'], **extra)
         print('refreshed. token={0}'.format(token))
+
+        # TODO BACKUP
+
     except Exception as e:
         err = e.with_traceback(sys.exc_info()[2])
         errtext = 'error: {0}({1})'.format(err.__class__.__name__, str(err))
@@ -141,6 +145,12 @@ if __name__ == '__main__':
         for album in r.get('albums'):
             text += '{0}: {1} items\n'.format(album.get('title'), album.get('mediaItemsCount'))
         message(text)
+
+        # TODO BACKUP
+        s3 = boto3.resource('s3')
+        for bucket in s3.buckets.all()
+            message(bucket.name)
+
     except Exception as e:
         err = e.with_traceback(sys.exc_info()[2])
         errtext = 'error: {0}({1})'.format(err.__class__.__name__, str(err))
