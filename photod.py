@@ -126,7 +126,7 @@ if __name__ == '__main__':
         authorization_url, state = google.authorization_url(authorization_base_url,
                                                             access_type="offline",
                                                             prompt="select_account")
-        message('Please authenticate the application: {0}'.format(authorization_url))
+        message('[Please click here to authenticate photod]({0})'.format(authorization_url))
 
         count = 0
         while count < 60 * 5:
@@ -136,9 +136,11 @@ if __name__ == '__main__':
             count += 1
         if redirect_response is None:
             message('timed out', True)
+            sys.exit(1)
+        token = google.fetch_token(token_url,
+                                   client_secret=os.environ.get('GOOGLE_OAUTH_SECRET'),
+                                   authorization_response=redirect_response)
         # debug
-        token = google.fetch_token(token_url, client_secret=os.environ.get('GOOGLE_OAUTH_SECRET'),
-            authorization_response=redirect_response)
         print('authorized. token={0}'.format(token))
         r = google.get('https://photoslibrary.googleapis.com/v1/albums').json()
         text = '{0} albums found\n'.format(len(r.get('albums')))
