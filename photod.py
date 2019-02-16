@@ -126,7 +126,7 @@ if __name__ == '__main__':
         authorization_url, state = google.authorization_url(authorization_base_url,
                                                             access_type="offline",
                                                             prompt="select_account")
-        message('\n~~~markdown\n[Please click here to authenticate photod]({0})\n~~~'.format(authorization_url))
+        message('Please authenticate the application: {0}'.format(authorization_url))
 
         count = 0
         while count < 60 * 5:
