@@ -102,6 +102,9 @@ if __name__ == '__main__':
         httploop = asyncio.new_event_loop()
         threading.Thread(target=httpserver, args=(httploop,)).start()
 
+        scheduleloop = asyncio.new_event_loop()
+        threading.Thread(target=scheduler, args=(scheduleloop,)).start()
+
         redirect_uri = '{0}{1}'.format(os.environ.get('BASE_URL'), callback_uri)
         google = OAuth2Session(os.environ.get('GOOGLE_OAUTH_CLIENT'), scope=scope,
                                             redirect_uri=redirect_uri)
