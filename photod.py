@@ -47,7 +47,6 @@ class APIHandler(BaseHTTPRequestHandler):
                 message('oauth2 error, message={0}'.format(query.get('error')), True)
             else:
                 redirect_response = os.environ.get('BASE_URL') + self.path
-                print('path: ' + self.path)
 
             self.send_response(200)
             self.send_header('content-type', 'text')
@@ -105,9 +104,9 @@ if __name__ == '__main__':
         if redirect_response is None:
             message('timed out', True)
         # debug
-        google.fetch_token(token_url, client_secret=os.environ.get('GOOGLE_OAUTH_SECRET'),
+        token = google.fetch_token(token_url, client_secret=os.environ.get('GOOGLE_OAUTH_SECRET'),
             authorization_response=redirect_response)
-        print('authorized')
+        print('authorized. token={0}'.format(token))
         r = google.get('https://photoslibrary.googleapis.com/v1/albums').json()
         text = '{0} albums found\n'.format(len(r.get('albums')))
         for album in r.get('albums'):
