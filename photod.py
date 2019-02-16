@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
         # TODO BACKUP
         s3 = boto3.resource('s3')
-        for bucket in s3.buckets.all()
+        for bucket in s3.buckets.all():
             message(bucket.name)
 
     except Exception as e:
