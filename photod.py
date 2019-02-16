@@ -78,7 +78,7 @@ def httpserver(loop):
 def scheduler(loop):
     asyncio.set_event_loop(loop)
     print('launch scheduler')
-    schedule.every(2).minute.do(refresh_token)
+    schedule.every(2).minutes.do(refresh_token)
 
     while True:
         schedule.run_pending()
