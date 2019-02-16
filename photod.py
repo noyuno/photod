@@ -11,7 +11,11 @@ import time
 import json
 
 callback_uri = '/callback'
+authorization_base_url = "https://accounts.google.com/o/oauth2/v2/auth"
+token_url = "https://www.googleapis.com/oauth2/v4/token"
+scope = ['https://www.googleapis.com/auth/photoslibrary.readonly']
 redirect_response = None
+google = None
 
 def check_environ(keys, header):
     ret = False
@@ -70,6 +74,20 @@ def httpserver(loop):
     server = HTTPServer(('photod', 80), APIHandler)
     server.serve_forever()
 
+def scheduler(loop):
+    asyncio.set_event_loop(loop)
+    print('launch scheduler')
+    schedule.every(30).minute.do(refresh_token)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+def refresh_token():
+    global token_url, google
+    token = google.refresh_token(token_url)
+    print('refreshed. token={0}'.format(token))
+
 if __name__ == '__main__':
     envse = ['GOOGLE_OAUTH_CLIENT', 'GOOGLE_OAUTH_SECRET', 'DISCORDBOT', 'BASE_URL']
 
@@ -84,10 +102,7 @@ if __name__ == '__main__':
         httploop = asyncio.new_event_loop()
         threading.Thread(target=httpserver, args=(httploop,)).start()
 
-        authorization_base_url = "https://accounts.google.com/o/oauth2/v2/auth"
-        token_url = "https://www.googleapis.com/oauth2/v4/token"
         redirect_uri = '{0}{1}'.format(os.environ.get('BASE_URL'), callback_uri)
-        scope = ['https://www.googleapis.com/auth/photoslibrary.readonly']
         google = OAuth2Session(os.environ.get('GOOGLE_OAUTH_CLIENT'), scope=scope,
                                             redirect_uri=redirect_uri)
         authorization_url, state = google.authorization_url(authorization_base_url,
