@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/sh -e
 mkdir -p ~/.aws
 cat << EOF >~/.aws/credentials
 [default]
