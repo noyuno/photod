@@ -57,7 +57,7 @@ class APIHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('content-type', 'text')
             self.end_headers()
-            self.wfile.write('http 200 ok\nphotod'.encode('utf-8'))
+            self.wfile.write('<body onload="setTimeout(\'window.close()\', 1000)">authorized. closing automecally.<br><br>photod</body>'.encode('utf-8'))
         else:
             self.send_response(501)
             self.send_header('content-type', 'text')
@@ -88,7 +88,11 @@ def scheduler(loop):
 def refresh_token():
     try:
         global token_url, google, token
-        token = google.refresh_token(token_url, refresh_token=token)
+        extra = {
+            'client_id': os.environ.get('GOOGLE_OAUTH_CLIENT'),
+            'client_secret': os.environ.get('GOOGLE_OAUTH_SECRET')
+        }
+        token = google.refresh_token(token_url, refresh_token=token, **extra)
         print('refreshed. token={0}'.format(token))
     except Exception as e:
         err = e.with_traceback(sys.exc_info()[2])
