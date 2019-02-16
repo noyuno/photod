@@ -107,7 +107,7 @@ if __name__ == '__main__':
         google.fetch_token(token_url, client_secret=os.environ.get('GOOGLE_OAUTH_SECRET'),
             authorization_response=redirect_response)
         print('authorized')
-        r = google.get('https://photoslibrary.googleapis.com/v1/albums')
+        r = google.get('https://photoslibrary.googleapis.com/v1/albums').json()
         text = '{0} albums found\n'.format(len(r.get('albums')))
         for album in r.get('albums'):
             text += '{0}: {1} items\n'.format(album.get('title'), album.get('mediaItemsCount'))
