@@ -80,7 +80,7 @@ def httpserver(loop):
 def scheduler(loop):
     asyncio.set_event_loop(loop)
     print('launch scheduler')
-    schedule.every(24).hour.do(refresh_token_backup)
+    schedule.every(24).hours.do(refresh_token_backup)
 
     while True:
         schedule.run_pending()
