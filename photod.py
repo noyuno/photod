@@ -77,16 +77,21 @@ def httpserver(loop):
 def scheduler(loop):
     asyncio.set_event_loop(loop)
     print('launch scheduler')
-    schedule.every(30).minute.do(refresh_token)
+    schedule.every(2).minute.do(refresh_token)
 
     while True:
         schedule.run_pending()
         time.sleep(1)
 
 def refresh_token():
-    global token_url, google
-    token = google.refresh_token(token_url)
-    print('refreshed. token={0}'.format(token))
+    try:
+        global token_url, google
+        token = google.refresh_token(token_url)
+        print('refreshed. token={0}'.format(token))
+    except Exception as e:
+        err = e.with_traceback(sys.exc_info()[2])
+        errtext = 'error: {0}({1})'.format(err.__class__.__name__, str(err))
+        message(errtext)
 
 if __name__ == '__main__':
     envse = ['GOOGLE_OAUTH_CLIENT', 'GOOGLE_OAUTH_SECRET', 'DISCORDBOT', 'BASE_URL']
@@ -133,7 +138,6 @@ if __name__ == '__main__':
     except Exception as e:
         err = e.with_traceback(sys.exc_info()[2])
         errtext = 'error: {0}({1})'.format(err.__class__.__name__, str(err))
-        print(errtext, file=sys.stderr)
         try:
             message(errtext)
         except Exception as e:
