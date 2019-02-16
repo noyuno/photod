@@ -47,6 +47,7 @@ class APIHandler(BaseHTTPRequestHandler):
                 message('oauth2 error, message={0}'.format(query.get('error')), True)
             else:
                 redirect_response = os.environ.get('BASE_URL') + self.path
+                print('path: ' + self.path)
 
             self.send_response(200)
             self.send_header('content-type', 'text')
