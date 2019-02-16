@@ -15,7 +15,8 @@ import boto3
 callback_uri = '/callback'
 authorization_base_url = "https://accounts.google.com/o/oauth2/v2/auth"
 token_url = "https://www.googleapis.com/oauth2/v4/token"
-scope = ['https://www.googleapis.com/auth/photoslibrary.readonly']
+scope = ['https://www.googleapis.com/auth/photoslibrary.readonly',
+         'https://www.googleapis.com/auth/userinfo.profile']
 redirect_response = None
 google = None
 token = None
