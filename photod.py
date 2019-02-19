@@ -145,19 +145,52 @@ if __name__ == '__main__':
         # debug
         print('authorized. token={0}'.format(token))
         # get userid
-        userinfo = google.get('https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses').json()
+        userinfo = google.get('https://people.googleapis.com/v1/people/me?personFields=emailAddresses').json()
+        email = None
+        for i in userinfo.get('emailAddresses'):
+            if i.get('primary') == True:
+                email = i.get('value')
+                break
+        if email is None:
+            message('error: cannot find email address.')
+            sys.exit(1)
         print(userinfo)
         r = google.get('https://photoslibrary.googleapis.com/v1/albums').json()
-        text = '{0} albums found\n'.format(len(r.get('albums')))
+        message('{0} albums found\n'.format(len(r.get('albums'))))
         for album in r.get('albums'):
-            text += '{0}: {1} items\n'.format(album.get('title'), album.get('mediaItemsCount'))
-        message(text)
+            message('{0} {1}: {2} items\n'.format(
+                album.get('id'), album.get('title'), album.get('mediaItemsCount')))
 
-        # TODO BACKUP
-        s3 = boto3.resource('s3')
-        for bucket in s3.buckets.all():
-            message(bucket.name)
+            s3 = boto3.resource('s3')
+            bucket = s3.Bucket(os.environ.get('S3_BUCKET'))
+            for bucket in s3.buckets.all():
+                message(bucket.name)
+            l = bucket.objects.filter(
+                Prefix='/'.join([os.environ.get('S3_PREFIX'), email, album.get('id'), '']))
+            # s3 pagenation has not implemented yet
 
+            already_saved = []
+            if 'Contents' in l:
+                already_saved = [content['Key'] for content in l['Contents']]
+
+            r = google.post('https://photoslibrary.googleapis.com/v1/mediaItems:search',
+                                 data={ 'pageSize': 100, 'albumId': album.get('id') }).json()
+            for item in r.get('mediaItems'):
+                if not(item.get('id') in already_saved):
+                    # debug
+                    print('uploading photo: {0} {1} to {2}'.format(
+                        item.get('id'), item.get('filename'),
+                        google.get('/'.join(os.environ.get('S3_PREFIX'), email, album.get('id'), item.get('id')))))
+                    image = google.get('{0}{1}'.format(item.get('baseUrl'), '=w10000-h10000'))
+                    bucket.Object('/'.join(os.environ.get('S3_PREFIX'), email, album.get('id'), item.get('id'))).put(Body=image)
+                else:
+                    # debug
+                    print('already exists:{0} {1}'.format(item.get('id'), item.get('filename')))
+
+            while r.get('nextPageToken') is not None:
+                # debug
+                print('nextPageToken found, but not implemented yet')
+                break
 
     except Exception as e:
         err = e.with_traceback(sys.exc_info()[2])
