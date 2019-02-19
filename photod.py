@@ -199,7 +199,7 @@ def put_photos(google, bucket, r, rp, already_saved, albumCurrent, photoCurrent,
 
 def put_albums(google, bucket, email, r, albumCurrent, album):
     message('{0}/{1} {2}: {3} items\n'.format(
-        albumCurrent, len(r.get('albums')), album.get('title'), album.get('mediaItemsCount')))
+        albumCurrent + 1, len(r.get('albums')), album.get('title'), album.get('mediaItemsCount')))
     successCount = 0
     failureCount = 0
     alreadyCount = 0
