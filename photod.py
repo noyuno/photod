@@ -130,13 +130,13 @@ def refresh_token_backup():
 def album_catalog(id, name):
     os.makedirs('{0}/catalog/{1}'.format(basedir, starttime), exist_ok=True)
     cat = open('{0}/catalog/{1}/album'.format(basedir, starttime), 'a', encoding='utf-8')
-    cat.write('{0} {1}'.format(id, name))
+    cat.write('{0} {1}\n'.format(id, name))
     cat.close()
 
 def photo_catalog(albumid, id, name):
     os.makedirs('{0}/catalog/{1}/albums'.format(basedir, starttime), exist_ok=True)
     cat = open('{0}/catalog/{1}/albums/{2}'.format(basedir, starttime, albumid), 'a', encoding='utf-8')
-    cat.write('{0} {1}'.format(id, name))
+    cat.write('{0} {1}\n'.format(id, name))
     cat.close()
 
 def put_album_catalog(bucket, prefix):
