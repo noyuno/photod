@@ -24,7 +24,6 @@ scope = ['https://www.googleapis.com/auth/photoslibrary.readonly',
          'https://www.googleapis.com/auth/userinfo.email']
 redirect_response = None
 token = None
-s3_root = 'backup/photod'
 
 basedir = '/data/photod/out'
 os.makedirs(basedir + '/logs', exist_ok=True)
@@ -43,7 +42,7 @@ logger.addHandler(consoleHandler)
 
 logger.info('started photod at {0}'.format(starttime))
 
-def check_environ(keys, header):
+def environ(keys, header):
     ret = False
     for k in keys:
         if os.environ.get(k) is None:
@@ -198,8 +197,8 @@ def put_photos(google, bucket, r, rp, already_saved, albumCurrent, photoCurrent,
     return 0
 
 def put_albums(google, bucket, email, r, albumCurrent, album):
-    message('{0}/{1} {2}: {3} items\n'.format(
-        albumCurrent + 1, len(r.get('albums')), album.get('title'), album.get('mediaItemsCount')))
+    #message('{0}/{1} {2}: {3} items\n'.format(
+    #    albumCurrent + 1, len(r.get('albums')), album.get('title'), album.get('mediaItemsCount')))
     successCount = 0
     failureCount = 0
     alreadyCount = 0
@@ -207,7 +206,7 @@ def put_albums(google, bucket, email, r, albumCurrent, album):
 
     #for bucket in s3.buckets.all():
     #    message(bucket.name)
-    prefix = '/'.join([s3_root, email, album.get('id'), ''])
+    prefix = '/'.join([os.environ.get('S3_PREFIX'), email, album.get('id'), ''])
     logger.debug('prefix: {0}'.format(prefix))
     #l = bucket.objects.filter(Prefix=prefix)
     already_saved = [ o.key for o in bucket.objects.filter(Prefix=prefix)]
@@ -267,8 +266,8 @@ def put_albums(google, bucket, email, r, albumCurrent, album):
                 photo_catalog(album.get('id'), item.get('id'), item.get('filename'))
             photoCurrent += 1
 
-    catalog_prefix = '/'.join([s3_root, email, 'catalog', 'albums', album.get('id')])
-    #catalog_prefix = s3_root + '/' + email + '/catalog/albums/' + album.get('id')
+    catalog_prefix = '/'.join([os.environ.get('S3_PREFIX'), email, 'catalog', 'albums', album.get('id')])
+    #catalog_prefix = os.environ.get('S3_PREFIX') + '/' + email + '/catalog/albums/' + album.get('id')
     logger.debug('{0}/{1}: put photo catalog to={2}'.format(
                  albumCurrent, len(r.get('albums')), catalog_prefix))
     put_photo_catalog(bucket, catalog_prefix, album.get('id'))
@@ -283,8 +282,9 @@ def put_albums(google, bucket, email, r, albumCurrent, album):
         #failureAlbums += 1
         ret = 1
         emoji = 'bad'
-    message('{0} album {1}: total {2}, success {3}, already {4}, failure {5}\n'.format(
-        util.emoji(emoji), album.get('title'), album.get('mediaItemsCount'), successCount, alreadyCount, failureCount))
+    message('{0} {1}/{2} album {3}: total {4}, success {5}, already {6}, failure {7}\n'.format(
+        util.emoji(emoji), albumCurrent + 1, len(r.get('albums')), album.get('title'),
+        album.get('mediaItemsCount'), successCount, alreadyCount, failureCount))
     #albumCurrent += 1
     return ret
 
@@ -335,7 +335,7 @@ def backup(google):
                 failureAlbums += 1
             albumCurrent += 1
 
-    catalog_prefix = '/'.join([s3_root, email, 'catalog', 'album'])
+    catalog_prefix = '/'.join([os.environ.get('S3_PREFIX'), email, 'catalog', 'album'])
     logger.debug('put album catalog to={0}'.format(catalog_prefix))
     put_album_catalog(bucket, catalog_prefix)
 
@@ -344,13 +344,14 @@ def backup(google):
         emoji = 'ok'
     else:
         emoji = 'bad'
-    message('{0} photod: finished: total {1}, success {2}, failure {3}\n'.format(
+    message('{0} finished: total {1}, success {2}, failure {3}\n'.format(
         util.emoji(emoji), len(r.get('albums')), successAlbums, failureAlbums))
 
 if __name__ == '__main__':
-    envse = ['GOOGLE_OAUTH_CLIENT', 'GOOGLE_OAUTH_SECRET', 'DISCORDBOT', 'BASE_URL']
+    envse = ['GOOGLE_OAUTH_CLIENT', 'GOOGLE_OAUTH_SECRET', 'DISCORDBOT', 'BASE_URL',
+             'S3_BUCKET', 'S3_PREFIX', 'AWS_ACCESS_KEY', 'AWS_SECRET_KEY', 'AWS_REGION']
 
-    f = check_environ(envse, 'error')
+    f = util.environ(envse, 'error')
 
     if f:
         print('error: some environment variables are not set. exiting.', file=sys.stderr)
