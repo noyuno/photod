@@ -35,7 +35,7 @@ logger = logging.getLogger('photod')
 logger.setLevel(logging.DEBUG)
 logFormatter = logging.Formatter(fmt='%(asctime)s %(levelname)s: %(message)s',
                                  datefmt='%Y%m%d-%H%S')
-fileHandler = logging.FileHandler(basedir + '/logs/{0}'.format(starttime))
+fileHandler = logging.FileHandler('/{}/{}'.format(logdir, starttime))
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
 consoleHandler = logging.StreamHandler()
