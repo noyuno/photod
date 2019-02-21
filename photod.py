@@ -70,26 +70,30 @@ def message(data, stderr=False):
 class APIHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         global redirect_response, callback_uri
-        pp = parse.urlparse(self.path)
-        query = parse.parse_qs(self.path)
-        if pp.path == callback_uri:
-            # debug
-            logger.debug('callback from google')
+        try:
+            pp = parse.urlparse(self.path)
+            query = parse.parse_qs(self.path)
+            if pp.path == callback_uri:
+                # debug
+                logger.debug('callback from google')
 
-            if query.get('error') is not None:
-                message('oauth2 error, message={0}'.format(query.get('error')), True)
+                if query.get('error') is not None:
+                    message('oauth2 error, message={0}'.format(query.get('error')), True)
+                else:
+                    redirect_response = os.environ.get('BASE_URL') + self.path
+
+                self.send_response(200)
+                self.send_header('content-type', 'text')
+                self.end_headers()
+                self.wfile.write('authorized. close this tab.\n\nphotod'.encode('utf-8'))
             else:
-                redirect_response = os.environ.get('BASE_URL') + self.path
-
-            self.send_response(200)
-            self.send_header('content-type', 'text')
-            self.end_headers()
-            self.wfile.write('authorized. close this tab.\n\nphotod'.encode('utf-8'))
-        else:
-            self.send_response(501)
-            self.send_header('content-type', 'text')
-            self.end_headers()
-            self.wfile.write('http 501\nphotod'.encode('utf-8'))
+                self.send_response(501)
+                self.send_header('content-type', 'text')
+                self.end_headers()
+                self.wfile.write('http 501\nphotod'.encode('utf-8'))
+        except Exception as e:
+            err = e.with_traceback(sys.exc_info()[2])
+            logger.error('{0}({1})'.format(err.__class__.__name__, str(err)))
 
     def do_POST(self):
         self.send_response(501)
@@ -98,19 +102,27 @@ class APIHandler(BaseHTTPRequestHandler):
         self.wfile.write('http 501\nphotod'.encode('utf-8'))
 
 def httpserver(loop):
-    asyncio.set_event_loop(loop)
-    logger.debug('launch http server')
-    server = HTTPServer(('photod', 80), APIHandler)
-    server.serve_forever()
+    try:
+        asyncio.set_event_loop(loop)
+        logger.debug('launch http server')
+        server = HTTPServer(('photod', 80), APIHandler)
+        server.serve_forever()
+    except Exception as e:
+        err = e.with_traceback(sys.exc_info()[2])
+        logger.error('{0}({1})'.format(err.__class__.__name__, str(err)))
 
 def scheduler(loop):
-    asyncio.set_event_loop(loop)
-    logger.debug('launch scheduler')
-    schedule.every(24).hours.do(refresh_token_backup)
+    try:
+        asyncio.set_event_loop(loop)
+        logger.debug('launch scheduler')
+        schedule.every(24).hours.do(refresh_token_backup)
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+    except Exception as e:
+        err = e.with_traceback(sys.exc_info()[2])
+        logger.error('{0}({1})'.format(err.__class__.__name__, str(err)))
 
 def refresh_token_backup():
     try:
