@@ -67,6 +67,16 @@ def message(data, stderr=False):
     if r.status_code != 200:
         logger.error('failure to send message to discordbot, status={0}'.format(r.status_code))
 
+queued_message = []
+
+def queue_message(data):
+    queued_message.append(data)
+
+def popall_message():
+    if len(queued_message) > 0:
+        message('\n'.join(queued_message))
+        queued_message.clear()
+
 class APIHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         global redirect_response, callback_uri
@@ -115,8 +125,7 @@ def scheduler(loop):
     try:
         asyncio.set_event_loop(loop)
         logger.debug('launch scheduler')
-        schedule.every(24).hours.do(refresh_token_backup)
-
+        schedule.every().day.at(os.environ.get('SCHEDULE')).do(refresh_token_backup)
         while True:
             schedule.run_pending()
             time.sleep(1)
@@ -303,7 +312,7 @@ def put_albums(google, bucket, email, r, albumCurrent, albumCount, album):
         #failureAlbums += 1
         ret = 1
         emoji = 'bad'
-    message('{0} {1}/{2} album {3}: total {4}, success {5}, already {6}, failure {7}\n'.format(
+    queue_message('{0} {1}/{2} album {3}: total {4}, success {5}, already {6}, failure {7}\n'.format(
         util.emoji(emoji), albumCurrent + 1, albumCount, album.get('title'),
         album.get('mediaItemsCount'), successCount, alreadyCount, failureCount))
     #albumCurrent += 1
@@ -335,7 +344,7 @@ def backup(google):
 
     r = google.get('https://photoslibrary.googleapis.com/v1/albums').json()
     albumCount += len(r.get('albums'))
-    message('{0} albums found in this page, nextPageToken={1}\n'.format(
+    queue_message('{0} albums found in this page, nextPageToken={1}\n'.format(
         len(r.get('albums')), r.get('nextPageToken') is not None))
 
 
@@ -348,10 +357,9 @@ def backup(google):
         albumCurrent += 1
 
     while r.get('nextPageToken') is not None:
-        message('put_albums(): nextPageToken found')
         r = google.get('https://photoslibrary.googleapis.com/v1/albums').json()
         albumCount += len(r.get('albums'))
-        message('{0} albums found in this page, nextPageToken={1}\n'.format(
+        queue_message('{0} albums found in this page, nextPageToken={1}\n'.format(
             len(r.get('albums')), r.get('nextPageToken') is not None))
 
         for album in r.get('albums'):
@@ -366,13 +374,17 @@ def backup(google):
     logger.debug('put album catalog to={0}'.format(catalog_prefix))
     put_album_catalog(bucket, catalog_prefix)
 
+    successAll = False
     emoji = ''
     if len(r.get('albums')) == successAlbums:
         emoji = 'ok'
+        successAll = True
     else:
         emoji = 'bad'
     message('{0} finished: total {1}, success {2}, failure {3}\n'.format(
         util.emoji(emoji), len(r.get('albums')), successAlbums, failureAlbums))
+    if successAll == False:
+        popall_message()
 
 if __name__ == '__main__':
     envse = ['GOOGLE_OAUTH_CLIENT', 'GOOGLE_OAUTH_SECRET', 'DISCORDBOT', 'BASE_URL',
