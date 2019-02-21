@@ -349,7 +349,7 @@ def backup(google):
 
 if __name__ == '__main__':
     envse = ['GOOGLE_OAUTH_CLIENT', 'GOOGLE_OAUTH_SECRET', 'DISCORDBOT', 'BASE_URL',
-             'S3_BUCKET', 'S3_PREFIX', 'AWS_ACCESS_KEY', 'AWS_SECRET_KEY', 'AWS_REGION']
+             'S3_BUCKET', 'S3_PREFIX']
 
     f = util.environ(envse, 'error')
 
