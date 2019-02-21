@@ -17,5 +17,5 @@ cat << EOF >~/.aws/config
 region=$AWS_REGION
 EOF
 
-python3 -u /opt/download.py
+python3 -u /opt/photod/download.py
 

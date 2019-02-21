@@ -15,9 +15,10 @@ from datetime import datetime, timezone, timedelta
 
 import util
 
-basedir = '/data/photod/out'
-
-os.makedirs(basedir + '/logs', exist_ok=True)
+basedir = '/data/photod'
+logdir = '/logs/photod'
+os.makedirs(basedir, exist_ok=True)
+os.makedirs(logdir, exist_ok=True)
 starttime = datetime.now().strftime('%Y%m%d-%H%M')
 logging.getLogger().setLevel(logging.WARNING)
 logger = logging.getLogger('photod')

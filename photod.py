@@ -25,8 +25,10 @@ scope = ['https://www.googleapis.com/auth/photoslibrary.readonly',
 redirect_response = None
 token = None
 
-basedir = '/data/photod/out'
-os.makedirs(basedir + '/logs', exist_ok=True)
+basedir = '/data/photod'
+logdir = '/logs/photod'
+os.makedirs(basedir, exist_ok=True)
+os.makedirs(logdir, exist_ok=True)
 starttime = datetime.now().strftime('%Y%m%d-%H%M')
 logging.getLogger().setLevel(logging.WARNING)
 logger = logging.getLogger('photod')
@@ -148,21 +150,22 @@ def put_photo_catalog(bucket, prefix, albumid):
     bucket.Object(prefix).put(Body=cat)
     cat.close()
 
-def put_photos(google, bucket, r, rp, already_saved, albumCurrent, photoCurrent, album, item, prefix):
+def put_photos(google, bucket, r, rp, already_saved,
+               albumCurrent, albumCount, photoCurrent, photoCount, album, item, prefix):
     src = '{0}{1}'.format(item.get('baseUrl'), '=w10000-h10000')
     dest = prefix + item.get('id')
     if dest in already_saved:
         # debug
         logger.debug('{0}/{1}-{2}/{3}: already exists:{4} {5}'.format(
-            albumCurrent + 1, len(r.get('albums')),
-            photoCurrent + 1, len(rp.get('mediaItems')),
+            albumCurrent + 1, albumCount,
+            photoCurrent + 1, photoCount,
             item.get('id'), item.get('filename')))
         return 3
     else:
         # debug
         logger.debug('{0}/{1}-{2}/{3}: uploading photo: filename="{4}" to {5}'.format(
-            albumCurrent + 1, len(r.get('albums')),
-            photoCurrent + 1, len(rp.get('mediaItems')),
+            albumCurrent + 1, albumCount,
+            photoCurrent + 1, photoCount,
             item.get('filename'), dest))
         imageres = requests.get(src)
         if imageres.status_code != 200:
@@ -172,8 +175,8 @@ def put_photos(google, bucket, r, rp, already_saved, albumCurrent, photoCurrent,
             if imageres.status_code != 200:
                 logger.error('error {0} at {1}/{2}-{3}/{4}: {5} {6}\n'.format(
                     imageres.status_code,
-                    albumCurrent + 1, len(r.get('albums')),
-                    photoCurrent + 1, len(rp.get('mediaItems')),
+                    albumCurrent + 1, albumCount,
+                    photoCurrent + 1, photoCount,
                     filename, src))
                 #failureCount += 1
                 return 1
@@ -184,8 +187,8 @@ def put_photos(google, bucket, r, rp, already_saved, albumCurrent, photoCurrent,
             err = e.with_traceback(sys.exc_info()[2])
             err = 'error {0} at {1}/{2}-{3}/{4}: {5} {6} ({7})'.format(
                 err.__class__.__name__,
-                albumCurrent + 1, len(r.get('albums')),
-                photoCurrent + 1, len(rp.get('mediaItems')),
+                albumCurrent + 1, albumCount,
+                photoCurrent + 1, photoCount,
                 filename, src, str(err))
             logger.error(err)
             #failureCount += 1
@@ -196,13 +199,14 @@ def put_photos(google, bucket, r, rp, already_saved, albumCurrent, photoCurrent,
     #photoCurrent += 1
     return 0
 
-def put_albums(google, bucket, email, r, albumCurrent, album):
+def put_albums(google, bucket, email, r, albumCurrent, albumCount, album):
     #message('{0}/{1} {2}: {3} items\n'.format(
     #    albumCurrent + 1, len(r.get('albums')), album.get('title'), album.get('mediaItemsCount')))
     successCount = 0
     failureCount = 0
     alreadyCount = 0
     photoCurrent = 0
+    photoCount = 0
 
     #for bucket in s3.buckets.all():
     #    message(bucket.name)
@@ -218,21 +222,23 @@ def put_albums(google, bucket, email, r, albumCurrent, album):
     #    already_saved = [content['Key'] for content in l['Contents']]
     if len(already_saved) > 0:
         logger.debug('{0}/{1}: already saved: {2} photos found. first record={3}'.format(
-            albumCurrent, len(r.get('albums')),
-            len(already_saved), already_saved[0]))
+            albumCurrent, albumCount, len(already_saved), already_saved[0]))
     else:
         logger.debug('{0}/{1}: not found that already saved photo'.format(
-                     albumCurrent, len(r.get('albums'))))
+                     albumCurrent, albumCount))
 
     # append (album id, album name) pair to albumcat
     album_catalog(album.get('id'), album.get('title'))
 
     rp = google.post('https://photoslibrary.googleapis.com/v1/mediaItems:search',
                      data={ 'pageSize': 100, 'albumId': album.get('id') }).json()
+    photoCount += len(rp.get('mediaItems'))
     logger.debug('{0}/{1}: nextPageToken={2}'.format(
         albumCurrent, len(r.get('albums')), rp.get('nextPageToken') is not None))
     for item in rp.get('mediaItems'):
-        ret = put_photos(google, bucket, r, rp, already_saved, albumCurrent, photoCurrent, album, item, prefix)
+        ret = put_photos(google, bucket, r, rp, already_saved,
+                         albumCurrent, albumCount, photoCurrent, photoCount,
+                         album, item, prefix)
         if ret == 0:
             successCount += 1
             photo_catalog(album.get('id'), item.get('id'), item.get('filename'))
@@ -248,12 +254,15 @@ def put_albums(google, bucket, email, r, albumCurrent, album):
     while rp.get('nextPageToken') is not None:
         # debug
         logger.debug('{0}/{1}: put_albums(): nextPageToken found in current album'.format(
-                     albumCurrent, len(r.get('albums'))))
+                     albumCurrent, albumCount))
         rp = google.post('https://photoslibrary.googleapis.com/v1/mediaItems:search',
                             data={ 'pageSize': 100, 'albumId': album.get('id'),
                                 'pageToken': rp.get('nextPageToken')        }).json()
+        photoCount += len(rp.get('mediaItems'))
         for item in rp.get('mediaItems'):
-            ret = put_photos(google, bucket, r, rp, already_saved, albumCurrent, photoCurrent, album, item, prefix)
+            ret = put_photos(google, bucket, r, rp, already_saved,
+                             albumCurrent, albumCount, photoCurrent, photoCount,
+                             album, item, prefix)
             if ret == 0:
                 successCount += 1
                 photo_catalog(album.get('id'), item.get('id'), item.get('filename'))
@@ -269,7 +278,7 @@ def put_albums(google, bucket, email, r, albumCurrent, album):
     catalog_prefix = '/'.join([os.environ.get('S3_PREFIX'), email, 'catalog', 'albums', album.get('id')])
     #catalog_prefix = os.environ.get('S3_PREFIX') + '/' + email + '/catalog/albums/' + album.get('id')
     logger.debug('{0}/{1}: put photo catalog to={2}'.format(
-                 albumCurrent, len(r.get('albums')), catalog_prefix))
+                 albumCurrent, albumCount, catalog_prefix))
     put_photo_catalog(bucket, catalog_prefix, album.get('id'))
 
     ret = 0
@@ -283,12 +292,17 @@ def put_albums(google, bucket, email, r, albumCurrent, album):
         ret = 1
         emoji = 'bad'
     message('{0} {1}/{2} album {3}: total {4}, success {5}, already {6}, failure {7}\n'.format(
-        util.emoji(emoji), albumCurrent + 1, len(r.get('albums')), album.get('title'),
+        util.emoji(emoji), albumCurrent + 1, albumCount, album.get('title'),
         album.get('mediaItemsCount'), successCount, alreadyCount, failureCount))
     #albumCurrent += 1
     return ret
 
 def backup(google):
+    successAlbums = 0
+    failureAlbums = 0
+    albumCurrent = 0
+    albumCount = 0
+
     logger.debug('opening s3')
     s3 = boto3.resource('s3')
     bucket = s3.Bucket(os.environ.get('S3_BUCKET'))
@@ -308,15 +322,13 @@ def backup(google):
         sys.exit(1)
 
     r = google.get('https://photoslibrary.googleapis.com/v1/albums').json()
+    albumCount += len(r.get('albums'))
     message('{0} albums found in this page, nextPageToken={1}\n'.format(
         len(r.get('albums')), r.get('nextPageToken') is not None))
 
-    successAlbums = 0
-    failureAlbums = 0
-    albumCurrent = 0
 
     for album in r.get('albums'):
-        ret = put_albums(google, bucket, email, r, albumCurrent, album)
+        ret = put_albums(google, bucket, email, r, albumCurrent, albumCount, album)
         if ret == 0:
             successAlbums += 1
         else:
@@ -326,9 +338,12 @@ def backup(google):
     while r.get('nextPageToken') is not None:
         message('put_albums(): nextPageToken found')
         r = google.get('https://photoslibrary.googleapis.com/v1/albums').json()
+        albumCount += len(r.get('albums'))
+        message('{0} albums found in this page, nextPageToken={1}\n'.format(
+            len(r.get('albums')), r.get('nextPageToken') is not None))
 
         for album in r.get('albums'):
-            ret = put_albums(google, bucket, email, album)
+            ret = put_albums(google, bucket, email, r, albumCurrent, albumCount, album)
             if ret == 0:
                 successAlbums += 1
             else:
@@ -388,7 +403,7 @@ if __name__ == '__main__':
                                    authorization_response=redirect_response)
         # debug
         # print('authorized. token={0}'.format(token))
-        backup(google)
+        # backup(google)
     except Exception as e:
         err = e.with_traceback(sys.exc_info()[2])
         errtext = 'error: {0}({1})'.format(err.__class__.__name__, str(err))

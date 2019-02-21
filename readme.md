@@ -34,7 +34,8 @@ A daemon that backup Google Photos albums to S3
             S3_PREFIX: mirror/photod
             AWS_REGION: ${AWS_REGION}
         volumes:
-            - ./data/photod:/data/photod/out
+            - ./data/photod:/data/photod
+            - ./logs/photod:/logs/photod
             - ./photod:/opt:ro
 ~~~
 
