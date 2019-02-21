@@ -49,7 +49,7 @@ def environ(keys, header):
     for k in keys:
         if os.environ.get(k) is None:
             ret = True
-            print('{0}: {1} is not set'.format(header, k), file=sys.stderr)
+            logger.error('{0}: {1} is not set'.format(header, k))
     return ret
 
 def message(data, stderr=False):
@@ -74,7 +74,7 @@ class APIHandler(BaseHTTPRequestHandler):
         query = parse.parse_qs(self.path)
         if pp.path == callback_uri:
             # debug
-            print('callback from google')
+            logger.debug('callback from google')
 
             if query.get('error') is not None:
                 message('oauth2 error, message={0}'.format(query.get('error')), True)
@@ -99,13 +99,13 @@ class APIHandler(BaseHTTPRequestHandler):
 
 def httpserver(loop):
     asyncio.set_event_loop(loop)
-    print('launch http server')
+    logger.debug('launch http server')
     server = HTTPServer(('photod', 80), APIHandler)
     server.serve_forever()
 
 def scheduler(loop):
     asyncio.set_event_loop(loop)
-    print('launch scheduler')
+    logger.debug('launch scheduler')
     schedule.every(24).hours.do(refresh_token_backup)
 
     while True:
@@ -310,7 +310,7 @@ def backup(google):
     # get userid
     userinfo = google.get('https://people.googleapis.com/v1/people/me?personFields=emailAddresses').json()
     # debug
-    #print('userinfo={0}'.format(userinfo))
+    #logger.debug('userinfo={0}'.format(userinfo))
     email = None
     for i in userinfo.get('emailAddresses'):
         if i.get('metadata').get('primary') == True:
@@ -318,7 +318,7 @@ def backup(google):
             break
     if email is None:
         message('error: cannot find primary email address.')
-        print(userinfo)
+        logger.debug(userinfo)
         sys.exit(1)
 
     r = google.get('https://photoslibrary.googleapis.com/v1/albums').json()
@@ -369,11 +369,11 @@ if __name__ == '__main__':
     f = util.environ(envse, 'error')
 
     if f:
-        print('error: some environment variables are not set. exiting.', file=sys.stderr)
+        logger.error('error: some environment variables are not set. exiting.')
         sys.exit(1)
 
     try:
-        print('listen at {0}'.format(socket.gethostbyname_ex(socket.gethostname())))
+        logger.info('listen at {0}'.format(socket.gethostbyname_ex(socket.gethostname())))
         httploop = asyncio.new_event_loop()
         threading.Thread(target=httpserver, args=(httploop,)).start()
 
@@ -402,7 +402,7 @@ if __name__ == '__main__':
                                    client_secret=os.environ.get('GOOGLE_OAUTH_SECRET'),
                                    authorization_response=redirect_response)
         # debug
-        # print('authorized. token={0}'.format(token))
+        # logger.debug('authorized. token={0}'.format(token))
         # backup(google)
     except Exception as e:
         err = e.with_traceback(sys.exc_info()[2])
