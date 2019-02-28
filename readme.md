@@ -7,36 +7,51 @@ A daemon that backup Google Photos albums to S3
 ### Requirements
 
 - [noyuno/discordbot](https://github.com/noyuno/discordbot)
+- HTTPS proxy server (such as [noyuno/k2: my server (Kagoya Version 2 server)](https://github.com/noyuno/k2))
+- Google Photos Library API, People API
+- S3
 
 ### Settings
 
 `docker-compose.yml` example:
 
 ~~~yaml
+    nginx:
+        image: steveltn/https-portal:1
+        ports:
+            - 80:80
+            - 443:443
+        restart: always
+        environment:
+            STAGE: production
+            DOMAINS: |
+                photos.${DOMAIN} -> http://photod:80
+
     photod:
         image: noyuno/photod:latest
         restart: always
         expose:
             - "80"
-        #ports:
-        #    - "8080:80"
         links:
             - discordbot
+            - nginx
         environment:
             GOOGLE_OAUTH_CLIENT: ${GOOGLE_OAUTH_CLIENT}
             GOOGLE_OAUTH_SECRET: ${GOOGLE_OAUTH_SECRET}
             BASE_URL: "https://photos.${DOMAIN}"
-            #BASE_URL: "http://localhost:8080"
             DISCORDBOT: "discordbot"
             AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
             AWS_SECRET_KEY: ${AWS_SECRET_KEY}
             S3_BUCKET: ${S3_BUCKET}
             S3_PREFIX: mirror/photod
             AWS_REGION: ${AWS_REGION}
+            SCHEDULE_TIME: "17:51" # 2:51
+            SCHEDULE_WEEKDAY: "0,1,2,3,4,5,6"
+            #ONESHOT: 1
         volumes:
             - ./data/photod:/data/photod
             - ./logs/photod:/logs/photod
-            - ./photod:/opt:ro
+            - ./photod:/opt/photod:ro
 ~~~
 
 

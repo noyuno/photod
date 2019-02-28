@@ -45,8 +45,6 @@ class Credential():
 
     def get_email(self):
         userinfo = self.get('https://people.googleapis.com/v1/people/me?personFields=emailAddresses')
-        # debug
-        #out.debug('userinfo={0}'.format(userinfo))
         self.email = None
         for i in userinfo.get('emailAddresses'):
             if i.get('metadata').get('primary') == True:
@@ -103,19 +101,3 @@ class Credential():
         r.raise_for_status()
         ret = r.json()
         return ret
-
-#def refresh_token_backup():
-#    try:
-#        global token_url, token
-#        extra = {
-#            'client_id': os.environ.get('GOOGLE_OAUTH_CLIENT'),
-#            'client_secret': os.environ.get('GOOGLE_OAUTH_SECRET')
-#        }
-#        google = OAuth2Session(os.environ.get('GOOGLE_OAUTH_CLIENT'), token=token)
-#        token = google.refresh_token(token_url, refresh_token=token['access_token'], **extra)
-#        logger.debug('refreshed. token={0}'.format(token))
-#        backup(google)
-#    except Exception as e:
-#        err = e.with_traceback(sys.exc_info()[2])
-#        message('{0}({1})'.format(err.__class__.__name__, str(err)), stderr=True)
-#        logger.error(traceback.format_exc())

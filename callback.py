@@ -3,6 +3,7 @@ import urllib.parse as parse
 import sys
 import asyncio
 import os
+import socket
 
 import util
 
@@ -64,9 +65,12 @@ class Callback():
     def run(self):
         try:
             asyncio.set_event_loop(self.loop)
-            self.out.debug('launch http server')
+            self.out.debug('launch callback service')
+            self.out.info('callback service listen at {0}'.format(socket.gethostbyname_ex(socket.gethostname())))
+
             self.handler = makeAPIHandler(self.out, self.callback_url, self.credential)
             server = HTTPServer(('photod', 80), self.handler)
             server.serve_forever()
+            self.out.error('callback server down!')
         except Exception as e:
-            self.out.exception('error: callback: %s', e)
+            self.out.exception('error: callback.run()', e)

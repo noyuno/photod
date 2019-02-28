@@ -39,7 +39,7 @@ class Output():
         self.starttime = datetime.now().strftime('%Y%m%d-%H%M')
         logging.getLogger().setLevel(logging.WARNING)
         self.logger = logging.getLogger('photod')
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
         logFormatter = logging.Formatter(fmt='%(asctime)s %(levelname)s: %(message)s',
                                         datefmt='%Y%m%d-%H%M')
         fileHandler = logging.FileHandler('/{}/{}'.format(logdir, self.starttime))
@@ -67,6 +67,7 @@ class Output():
             self.exception('message() error', e)
 
     def put(self, data):
+        self.info(data)
         self._array.append(data)
 
     def pop(self):

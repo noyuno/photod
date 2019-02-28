@@ -31,20 +31,22 @@ class Scheduler():
     def run(self):
         try:
             if self.loop is None:
-                self.out.debug('launch scheduler as current thread')
+                self.out.debug('launch scheduler in current thread')
             else:
                 asyncio.set_event_loop(self.loop)
-                self.out.debug('launch scheduler as new thread')
-            schedule.every().day.at(os.environ.get('SCHEDULE')).do(self.backup.run)
+                self.out.debug('launch scheduler in new thread')
+            weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+            for w in os.environ.get('SCHEDULE_WEEKDAY').split(','):
+                eval('schedule.every().{}.at({}).do(self.backup.run)'.format(weekdays[int(w)], os.environ.get('SCHEDULE_TIME')))
             while True:
                 schedule.run_pending()
                 time.sleep(1)
         except Exception as e:
             self.out.exception('error: scheduler', e)
 
-if __name__ == '__main__':
+def main():
     envse = ['GOOGLE_OAUTH_CLIENT', 'GOOGLE_OAUTH_SECRET', 'DISCORDBOT', 'BASE_URL',
-             'S3_BUCKET', 'S3_PREFIX', 'SCHEDULE']
+             'S3_BUCKET', 'S3_PREFIX', 'SCHEDULE_TIME', 'SCHEDULE_WEEKDAY']
 
     f = util.environ(envse, 'error')
 
@@ -60,11 +62,8 @@ if __name__ == '__main__':
         cred = credential.Credential(out,
             os.environ['GOOGLE_OAUTH_CLIENT'], os.environ['GOOGLE_OAUTH_SECRET'],
             token_url, scope, redirect_url, authorization_base_url)
-        out.info('listen at {0}'.format(socket.gethostbyname_ex(socket.gethostname())))
         cb = callback.Callback(asyncio.new_event_loop(), out, cred, callback_url)
         threading.Thread(target=cb.run, name='callback', daemon=True).start()
-        #httploop = asyncio.new_event_loop()
-        #threading.Thread(target=httpserver, args=(httploop,)).start()
 
         back = backup.Backup(out, cb, cred, os.environ['S3_BUCKET'], os.environ['S3_PREFIX'], basedir)
 
@@ -74,15 +73,16 @@ if __name__ == '__main__':
                        os.environ['GOOGLE_OAUTH_SECRET'],
                        os.environ['BASE_URL'],
                        callback_url)
-
+        out.info('main(): authorized, email={}'.format(cred.email))
         if os.environ.get('ONESHOT') is None:
-            #sched = Scheduler(asyncio.new_event_loop(), out, back)
-            #threading.Thread(target=sched.run, name='scheduler', daemon=True).start()
             sched = Scheduler(None, out, back)            
             sched.run()
-        # logger.debug('authorized. token={0}'.format(token))
-        
-        if os.environ.get('ONESHOT') is not None:
+            out.error('main(): scheduler down!')
+        else:
             back.run()
+            out.info('main(): all tasks done')
     except Exception as e:
         out.exception('error: main', e)
+
+if __name__ == '__main__':
+    main()

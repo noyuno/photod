@@ -50,7 +50,6 @@ class Library():
                 if imageres.status_code != 200:
                     self.out.error('error {} at library-{}-{}/{}: {} {}\n'.format(
                         imageres.status_code, page, current + 1, count, item.get('filename'), src))
-                    #failureCount += 1
                     return 1
 
             try:
@@ -60,12 +59,7 @@ class Library():
                 err = 'put_photos(): error at library-{}-{}/{}: {}'.format(
                     page, current + 1, count, item.get('filename'))
                 self.out.exception(err, e)
-                #failureCount += 1
                 return 2
-
-            # uploaded a photo
-            #successCount += 1
-        #photoCurrent += 1
         return 0
 
 
@@ -82,31 +76,17 @@ class Library():
         self.out.debug('prefix: {0}'.format(prefix))
         already_saved = [ o.key for o in self.bucket.objects.filter(Prefix=prefix)]
 
-        r = self.credential.get('https://photoslibrary.googleapis.com/v1/mediaItems',
-                        params={ 'pageSize': 100 })
-        count += len(r.get('mediaItems'))
-        self.out.debug('library-1: nextPageToken={}'.format(r.get('nextPageToken') is not None))
-        for item in r.get('mediaItems'):
-            ret = self.put_photos(r, already_saved, current, count, item, prefix)
-            if ret == 0:
-                success += 1
-                self.photo_catalog(item.get('id'), item.get('filename'))
-            elif ret == 1:
-                failure += 1
-            elif ret == 2:
-                failure += 1
-            elif ret == 3:
-                already += 1
-                self.photo_catalog(item.get('id'), item.get('filename'))
-            current += 1
-
-        while r.get('nextPageToken') is not None:
-            # debug
-            self.out.debug('library-{}: nextPageToken found'.format(page + 1))
-            r = self.credential.get('https://photoslibrary.googleapis.com/v1/mediaItems',
+        r = None
+        while r is None or r.get('nextPageToken') is not None:
+            if r is None:
+                r = self.credential.get('https://photoslibrary.googleapis.com/v1/mediaItems',
+                        params={ 'pageSize': '100' })
+            else:
+                r = self.credential.get('https://photoslibrary.googleapis.com/v1/mediaItems',
                         params={ 'pageSize': '100',
-                                    'pageToken': r.get('nextPageToken') })
+                                 'pageToken': r.get('nextPageToken')})
             count += len(r.get('mediaItems'))
+            failure_per_page = 0
             for item in r.get('mediaItems'):
                 ret = self.put_photos(r, already_saved, page, current, count, item, prefix)
                 if ret == 0:
@@ -114,16 +94,18 @@ class Library():
                     self.photo_catalog(item.get('id'), item.get('filename'))
                 elif ret == 1:
                     failure += 1
+                    failure_per_page += 1
                 elif ret == 2:
                     failure += 1
+                    failure_per_page += 1
                 elif ret == 3:
                     already += 1
                     self.photo_catalog(item.get('id'), item.get('filename'))
                 current += 1
+            self.out.info('library-{}: count: {}, failure photos: {}'.format(page + 1, len(r.get('mediaItems')), failure_per_page))
             page += 1
 
         catalog_prefix = '/'.join([os.environ.get('S3_PREFIX'), self.credential.email, 'catalog', 'library'])
-        #catalog_prefix = os.environ.get('S3_PREFIX') + '/' + email + '/catalog/albums/' + album.get('id')
         self.out.debug('library: put catalog to={}'.format(catalog_prefix))
         self.put_photo_catalog(catalog_prefix)
 

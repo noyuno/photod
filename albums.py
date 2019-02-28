@@ -80,35 +80,21 @@ class Albums():
                     photo_current + 1, photo_count,
                     item.get('filename'), src, str(err))
                 self.out.exception(err, e)
-                #failureCount += 1
                 return 2
-
-            # uploaded a photo
-            #success_count += 1
-        #photo_current += 1
         return 0
 
     def put_albums(self, r, albumCurrent, albumCount, album):
-        #message('{0}/{1} {2}: {3} items\n'.format(
-        #    albumCurrent + 1, len(r.get('albums')), album.get('title'), album.get('mediaItemsCount')))
         success_count = 0
         failure_count = 0
         already_count = 0
         photo_current = 0
         photo_count = 0
 
-        #for bucket in s3.buckets.all():
-        #    message(bucket.name)
         prefix = '/'.join([self.bucketprefix, self.credential.email, album.get('id'), ''])
         self.out.debug('prefix: {0}'.format(prefix))
-        #l = bucket.objects.filter(Prefix=prefix)
-        already_saved = [ o.key for o in self.bucket.objects.filter(Prefix=prefix)]
-        # s3 pagenation has not implemented yet
-        #logger.debug('{0}'.format(l))
 
-        #already_saved = []
-        #if l is not None and 'Contents' in l:
-        #    already_saved = [content['Key'] for content in l['Contents']]
+        already_saved = [ o.key for o in self.bucket.objects.filter(Prefix=prefix)]
+
         if len(already_saved) > 0:
             self.out.debug('{0}/{1}: already exists: {2} photos found. first record={3}'.format(
                 albumCurrent, albumCount, len(already_saved), already_saved[0]))
@@ -116,38 +102,20 @@ class Albums():
             self.out.debug('{0}/{1}: not found that already saved photo'.format(
                         albumCurrent, albumCount))
 
-        # append (album id, album name) pair to albumcat
         self.album_catalog(album.get('id'), album.get('title'))
 
-        rp = self.credential.post('https://photoslibrary.googleapis.com/v1/mediaItems:search',
-                        data={ 'pageSize': 100, 'albumId': album.get('id') })
-        photo_count += len(rp.get('mediaItems'))
-        self.out.debug('{0}/{1}: nextPageToken={2}'.format(
-            albumCurrent, len(r.get('albums')), rp.get('nextPageToken') is not None))
-        for item in rp.get('mediaItems'):
-            ret = self.put_photos(r, rp, already_saved,
-                            albumCurrent, albumCount, photo_current, photo_count,
-                            album, item, prefix)
-            if ret == 0:
-                success_count += 1
-                self.photo_catalog(album.get('id'), item.get('id'), item.get('filename'))
-            elif ret == 1:
-                failure_count += 1
-            elif ret == 2:
-                failure_count += 1
-            elif ret == 3:
-                already_count += 1
-                self.photo_catalog(album.get('id'), item.get('id'), item.get('filename'))
-            photo_current += 1
-
-        while rp.get('nextPageToken') is not None:
-            # debug
-            self.out.debug('{0}/{1}: put_albums(): nextPageToken found in current album'.format(
-                        albumCurrent, albumCount))
-            rp = self.credential.post('https://photoslibrary.googleapis.com/v1/mediaItems:search',
+        rp = None
+        page = 0
+        while rp is None or rp.get('nextPageToken') is not None:
+            if rp is None:
+                rp = self.credential.post('https://photoslibrary.googleapis.com/v1/mediaItems:search',
+                                data={ 'pageSize': 100, 'albumId': album.get('id') })
+            else:
+                rp = self.credential.post('https://photoslibrary.googleapis.com/v1/mediaItems:search',
                                 data={ 'pageSize': 100, 'albumId': album.get('id'),
-                                    'pageToken': rp.get('nextPageToken')        })
+                                       'pageToken': rp.get('nextPageToken') })
             photo_count += len(rp.get('mediaItems'))
+            failure_per_page = 0
             for item in rp.get('mediaItems'):
                 ret = self.put_photos(r, rp, already_saved,
                                 albumCurrent, albumCount, photo_current, photo_count,
@@ -157,15 +125,19 @@ class Albums():
                     self.photo_catalog(album.get('id'), item.get('id'), item.get('filename'))
                 elif ret == 1:
                     failure_count += 1
+                    failure_per_page += 1
                 elif ret == 2:
                     failure_count += 1
+                    failure_per_page += 1
                 elif ret == 3:
                     already_count += 1
                     self.photo_catalog(album.get('id'), item.get('id'), item.get('filename'))
                 photo_current += 1
+            self.out.debug('{}/{}-{}: count: {}, failure photos: {}'.format(
+                        albumCurrent, albumCount, page + 1, len(rp.get('mediaItems')), failure_per_page))
+            page += 1
 
         catalog_prefix = '/'.join([self.bucketprefix, self.credential.email, 'catalog', 'albums', album.get('id')])
-        #catalog_prefix = self.bucketprefix + '/' + credential.email + '/catalog/albums/' + album.get('id')
         self.out.debug('{0}/{1}: put photo catalog to={2}'.format(
                     albumCurrent, albumCount, catalog_prefix))
         self.put_photo_catalog(self.bucket, catalog_prefix, album.get('id'))
@@ -173,17 +145,14 @@ class Albums():
         ret = 0
         emoji = ''
         if int(album.get('mediaItemsCount')) == success_count + already_count:
-            #successAlbums += 1
             ret = 0
             emoji = 'ok'
         else:
-            #failureAlbums += 1
             ret = 1
             emoji = 'bad'
         self.out.put('{0} {1}/{2} album {3}: total {4}, success {5}, already {6}, failure {7}\n'.format(
             util.emoji(emoji), albumCurrent + 1, albumCount, album.get('title'),
             album.get('mediaItemsCount'), success_count, already_count, failure_count))
-        #albumCurrent += 1
         return ret
 
     def run(self):
@@ -191,37 +160,27 @@ class Albums():
         failure_albums = 0
         album_current = 0
         album_count = 0
-
-        self.out.debug('opening s3')
-
-        r = self.credential.get('https://photoslibrary.googleapis.com/v1/albums')
-        album_count += len(r.get('albums'))
-        self.out.put('{0} albums found in this page, nextPageToken={1}\n'.format(
-            len(r.get('albums')), r.get('nextPageToken') is not None))
-
-
-        for album in r.get('albums'):
-            ret = self.put_albums(r, album_current, album_count, album)
-            if ret == 0:
-                success_albums += 1
+        r = None
+        page = 0
+        while r is None or r.get('nextPageToken') is not None:
+            if r is None:
+                r = self.credential.get('https://photoslibrary.googleapis.com/v1/albums')
             else:
-                failure_albums += 1
-            album_current += 1
-
-        while r.get('nextPageToken') is not None:
-            r = self.credential.get('https://photoslibrary.googleapis.com/v1/albums')
+                r = self.credential.get('https://photoslibrary.googleapis.com/v1/albums',
+                        params={'pageToken': r.get('nextPageToken') })
             album_count += len(r.get('albums'))
-            self.out.put('{0} albums found in this page, nextPageToken={1}\n'.format(
-                len(r.get('albums')),
-                 r.get('nextPageToken') is not None))
+            self.out.put('Albums.run(): {0} albums found in this page, nextPageToken={1}\n'.format(
+                len(r.get('albums')), r.get('nextPageToken')))
 
             for album in r.get('albums'):
                 ret = self.put_albums(r, album_current, album_count, album)
+                ret = 0
                 if ret == 0:
                     success_albums += 1
                 else:
                     failure_albums += 1
                 album_current += 1
+            page += 1
 
         catalog_prefix = '/'.join([self.bucketprefix, self.credential.email, 'catalog', 'album'])
         self.out.debug('put album catalog to={0}'.format(catalog_prefix))
