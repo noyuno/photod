@@ -37,7 +37,7 @@ class Scheduler():
                 self.out.debug('launch scheduler in new thread')
             weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
             for w in os.environ.get('SCHEDULE_WEEKDAY').split(','):
-                eval('schedule.every().{}.at({}).do(self.backup.run)'.format(weekdays[int(w)], os.environ.get('SCHEDULE_TIME')))
+                eval('schedule.every().{}.at(\'{}\').do(self.backup.run)'.format(weekdays[int(w)], os.environ.get('SCHEDULE_TIME')))
             while True:
                 schedule.run_pending()
                 time.sleep(1)
