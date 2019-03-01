@@ -2,21 +2,25 @@ from requests_oauthlib import OAuth2Session
 from oauthlib.oauth2 import TokenExpiredError
 import os
 import time
+import json
 
 class Credential():
-    def __init__(self, out, oauth_client, oauth_secret, token_url, scope, redirect_url, authorization_base_url, token=None, refresh_url=None, email=None):
+    def __init__(self, out, oauth_client, oauth_secret, token_url, scope, redirect_url, authorization_base_url, token_dir):
         self.out = out
-        self.token = token
         self.token_url = token_url
-        self.refresh_url = refresh_url
-        self.email = email
         self.oauth_client = oauth_client
         self.oauth_secret = oauth_secret
         self.scope = scope
         self.redirect_url = redirect_url
+        self.token_dir = token_dir
         self.authorization_base_url = authorization_base_url
         self.authorization_state = None
         self.redirect_response = None
+        self.email = None
+        self.extra = {
+            'client_id': self.oauth_client,
+            'client_secret': self.oauth_secret
+        }
 
     def authorization_step(self):
         google = OAuth2Session(self.oauth_client, scope=self.scope, redirect_uri=self.redirect_url)
@@ -27,7 +31,33 @@ class Credential():
                 prompt="select_account")
         return authorization_url
 
-    def fetch_token(self):
+    def load(self):
+        token_path = '/'.join([self.token_dir, 'token'])        
+        if os.path.exists(token_path):
+            with open(token_path, 'r') as fp:            
+                self.token = json.load(fp)
+            self.get_email()
+            return True
+        return False
+
+    def save_token(self, token):
+        path = '/'.join([self.token_dir, 'token'])
+        os.makedirs(self.token_dir, exist_ok=True)
+        with open(path, 'w') as fp:
+            json.dump(token, fp, indent=4, sort_keys=True)
+
+    def get_email(self):
+        userinfo = self.get('https://people.googleapis.com/v1/people/me?personFields=emailAddresses')
+        self.email = None
+        for i in userinfo.get('emailAddresses'):
+            if i.get('metadata').get('primary') == True:
+                self.email = i.get('value')
+                break
+        if self.email is None:
+            raise RuntimeError('error: cannot find primary email address.')
+        return self.email
+
+    def wait_authorization(self):
         # wait 5 minutes
         count = 0
         while count < 60 * 5:
@@ -41,38 +71,16 @@ class Credential():
         self.token = google.fetch_token(
             self.token_url, client_secret=self.oauth_secret,
             authorization_response=self.redirect_response)
-        self.get_email()
 
-    def get_email(self):
-        userinfo = self.get('https://people.googleapis.com/v1/people/me?personFields=emailAddresses')
-        self.email = None
-        for i in userinfo.get('emailAddresses'):
-            if i.get('metadata').get('primary') == True:
-                self.email = i.get('value')
-                break
-        if self.email is None:
-            raise RuntimeError('error: cannot find primary email address.')
-        return self.email
+        self.save_token(self.token)
+        self.get_email()
 
     def get(self, url, *, params=None):
         r = None
         ret = None
-        try:
-            google = OAuth2Session(os.environ.get('GOOGLE_OAUTH_CLIENT'), token=self.token)
-            r = google.get(url, params=params)
-        except TokenExpiredError as e:
-            extra = {
-                'client_id': os.environ.get('GOOGLE_OAUTH_CLIENT'),
-                'client_secret': os.environ.get('GOOGLE_OAUTH_SECRET')
-            }
-            self.out.info('raised TokenExpiredError, refresh token. refresh_url={}'.format(self.refresh_url))
-            try:
-                token = google.refresh_token(self.refresh_url, **extra)
-            except Exception as e:
-                self.out.exception('failed to refresh token', e)
-                raise
-
-            r = google.get(url, params=params)
+        google = OAuth2Session(self.oauth_client, token=self.token,
+            auto_refresh_url=self.token_url, auto_refresh_kwargs=self.extra, token_updater=self.save_token)
+        r = google.get(url, params=params)
         r.raise_for_status()
         ret = r.json()
         return ret
@@ -82,22 +90,9 @@ class Credential():
             raise RuntimeError('post() data param must be set')
         r = None
         ret = None
-        try:
-            google = OAuth2Session(os.environ.get('GOOGLE_OAUTH_CLIENT'), token=self.token)
-            r = google.post(url, data=data)
-        except TokenExpiredError as e:
-            extra = {
-                'client_id': os.environ.get('GOOGLE_OAUTH_CLIENT'),
-                'client_secret': os.environ.get('GOOGLE_OAUTH_SECRET')
-            }
-            self.out.info('raised TokenExpiredError, refresh token. refresh_url={}'.format(self.refresh_url))
-            try:
-                token = google.refresh_token(self.refresh_url, **extra)
-            except Exception as e:
-                self.out.exception('failed to refresh token', e)
-                raise
-
-            r = google.get(url, data=data)
+        google = OAuth2Session(self.oauth_client, token=self.token,
+            auto_refresh_url=self.token_url, auto_refresh_kwargs=self.extra, token_updater=self.save_token)
+        r = google.post(url, data=data)
         r.raise_for_status()
         ret = r.json()
         return ret

@@ -28,12 +28,6 @@ class Backup():
         self.bucketprefix = bucketprefix
         self.basedir = basedir
 
-    def authorize(self, authorization_base_url, token_url, scope, oauth_client, oauth_secret, baseurl, callback_url):
-        authorization_url = self.credential.authorization_step()
-        self.out.message('Please authenticate the application: {0}'.format(authorization_url))
-
-        self.credential.fetch_token()
-
     def run(self):
         starttime = datetime.now().strftime('%Y%m%d-%H%M')
        

@@ -61,19 +61,20 @@ def main():
         redirect_url = '{0}{1}'.format(os.environ['BASE_URL'], callback_url)
         cred = credential.Credential(out,
             os.environ['GOOGLE_OAUTH_CLIENT'], os.environ['GOOGLE_OAUTH_SECRET'],
-            token_url, scope, redirect_url, authorization_base_url)
+            token_url, scope, redirect_url, authorization_base_url, '/'.join([basedir, 'token']))
         cb = callback.Callback(asyncio.new_event_loop(), out, cred, callback_url)
         threading.Thread(target=cb.run, name='callback', daemon=True).start()
 
         back = backup.Backup(out, cb, cred, os.environ['S3_BUCKET'], os.environ['S3_PREFIX'], basedir)
 
-        back.authorize(authorization_base_url, token_url,
-                       scope,
-                       os.environ['GOOGLE_OAUTH_CLIENT'],
-                       os.environ['GOOGLE_OAUTH_SECRET'],
-                       os.environ['BASE_URL'],
-                       callback_url)
-        out.info('main(): authorized, email={}'.format(cred.email))
+        if cred.load():
+            out.info('using saved token')
+        else:
+            authorization_url = cred.authorization_step()
+            out.message('Please authenticate the application: {0}'.format(authorization_url))
+            cred.wait_authorization()
+            out.info('main(): authorized, email={}'.format(cred.email))
+
         if os.environ.get('ONESHOT') is None:
             sched = Scheduler(None, out, back)            
             sched.run()
