@@ -45,7 +45,7 @@ A daemon that backup Google Photos albums to S3
             S3_BUCKET: ${S3_BUCKET}
             S3_PREFIX: mirror/photod
             AWS_REGION: ${AWS_REGION}
-            SCHEDULE_TIME: "17:51" # 2:51
+            SCHEDULE_TIME: "17:51" # requires zero fill 02:51
             SCHEDULE_WEEKDAY: "0,1,2,3,4,5,6"
             #ONESHOT: 1
         volumes:

@@ -25,6 +25,7 @@ class Credential():
 
     def authorization_step(self):
         google = OAuth2Session(self.oauth_client, scope=self.scope, redirect_uri=self.redirect_url)
+        # prompt="consent": https://github.com/googleapis/google-api-python-client/issues/213#issuecomment-205886341
         authorization_url, self.authorization_state = \
             google.authorization_url(
                 self.authorization_base_url,
