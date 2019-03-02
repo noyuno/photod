@@ -16,6 +16,7 @@ class Credential():
         self.authorization_base_url = authorization_base_url
         self.authorization_state = None
         self.redirect_response = None
+        self.token = None
         self.email = None
         self.extra = {
             'client_id': self.oauth_client,
@@ -28,7 +29,7 @@ class Credential():
             google.authorization_url(
                 self.authorization_base_url,
                 access_type="offline",
-                prompt="select_account")
+                prompt="consent")
         return authorization_url
 
     def load(self):
@@ -41,6 +42,9 @@ class Credential():
         return False
 
     def save_token(self, token):
+        # check refreshable token
+        if token.get('refresh_token') is None:
+            raise RuntimeError('This token is not refreshable. refresh_token not found.')
         path = '/'.join([self.token_dir, 'token'])
         os.makedirs(self.token_dir, exist_ok=True)
         with open(path, 'w') as fp:
@@ -76,10 +80,9 @@ class Credential():
         self.get_email()
 
     def get(self, url, *, params=None):
-        r = None
-        ret = None
         google = OAuth2Session(self.oauth_client, token=self.token,
-            auto_refresh_url=self.token_url, auto_refresh_kwargs=self.extra, token_updater=self.save_token)
+            auto_refresh_url=self.token_url, auto_refresh_kwargs=self.extra,
+            token_updater=self.save_token)
         r = google.get(url, params=params)
         r.raise_for_status()
         ret = r.json()
@@ -88,10 +91,9 @@ class Credential():
     def post(self, url, *, data=None):
         if data is None:
             raise RuntimeError('post() data param must be set')
-        r = None
-        ret = None
         google = OAuth2Session(self.oauth_client, token=self.token,
-            auto_refresh_url=self.token_url, auto_refresh_kwargs=self.extra, token_updater=self.save_token)
+            auto_refresh_url=self.token_url, auto_refresh_kwargs=self.extra,
+            token_updater=self.save_token)
         r = google.post(url, data=data)
         r.raise_for_status()
         ret = r.json()
