@@ -17,7 +17,6 @@ class Library():
         self.bucket = s3.Bucket(bucketname)
         self.bucketprefix = bucketprefix
 
-
     def photo_catalog(self, id, name):
         os.makedirs('{0}/catalog/{1}/albums'.format(self.catalogdir, self.starttime), exist_ok=True)
         cat = open('{0}/catalog/{1}/albums/{2}'.format(self.catalogdir, self.starttime, 'library'), 'a', encoding='utf-8')
@@ -55,7 +54,6 @@ class Library():
             try:
                 self.bucket.Object(dest).put(Body=imageres.content)
             except Exception as e:
-                err = e.with_traceback(sys.exc_info()[2])
                 err = 'put_photos(): error at library-{}-{}/{}: {}'.format(
                     page, current + 1, count, item.get('filename'))
                 self.out.exception(err, e)

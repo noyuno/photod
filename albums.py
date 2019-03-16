@@ -73,12 +73,10 @@ class Albums():
             try:
                 self.bucket.Object(dest).put(Body=imageres.content)
             except Exception as e:
-                err = e.with_traceback(sys.exc_info()[2])
-                err = 'error {0} at {1}/{2}-{3}/{4}: {5} {6} ({7})'.format(
-                    err.__class__.__name__,
+                err = 'error at {}/{}-{}/{}: {} {}'.format(
                     album_current + 1, album_count,
                     photo_current + 1, photo_count,
-                    item.get('filename'), src, str(err))
+                    item.get('filename'), src)
                 self.out.exception(err, e)
                 return 2
         return 0

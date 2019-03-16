@@ -25,7 +25,7 @@ logger = logging.getLogger('photod')
 logger.setLevel(logging.DEBUG)
 logFormatter = logging.Formatter(fmt='%(asctime)s %(levelname)s: %(message)s',
                                  datefmt='%Y%m%d-%H%S')
-fileHandler = logging.FileHandler(basedir + '/logs/{0}'.format(starttime))
+fileHandler = logging.FileHandler(os.path.join(logdir, starttime))
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
 consoleHandler = logging.StreamHandler()
@@ -98,8 +98,7 @@ def download():
                 os.chmod(dest, 0o777)
                 successCount += 1
             except Exception as e:
-                err = e.with_traceback(sys.exc_info()[2])
-                logger.error('{0}({1})'.format(err.__class__.__name__, str(err)))
+                logger.exception('download()', stack_info=True)
                 failureCount += 1
             photoCurrent += 1
 

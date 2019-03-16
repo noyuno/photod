@@ -60,13 +60,14 @@ A daemon that backup Google Photos albums to S3
 ## Download operation
 
 ~~~sh
-docker run --rm -it -v $(pwd)/data:/data/photod/out -v $(pwd):/opt:ro \
+docker run --rm -it \
+    -v $(pwd)/out:/data/photod \
+    -v $(pwd):/opt/photod:ro \
+    -v $(pwd)/logs:/logs/photod \
     -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY \
     -e AWS_SECRET_KEY=$AWS_SECRET_KEY \
     -e AWS_REGION=$AWS_REGION \
     -e S3_BUCKET=$S3_BUCKET \
-    -e S3_PREFIX=$S3_PREFIX \
-    -e EMAIL=$EMAIL \
-    noyuno/photod /opt/download.sh
+    -e S3_PREFIX=mirror/photod \
+    -e EMAIL=$EMAIL noyuno/photod /opt/photod/download.sh
 ~~~
-
