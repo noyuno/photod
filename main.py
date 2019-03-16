@@ -80,12 +80,12 @@ def main():
             out.info('main(): authorized, email={}'.format(cred.email))
 
         if util.environ_bool('ONESHOT'):
+            back.run()
+            out.info('main(): all tasks done')
+        else:
             sched = Scheduler(None, out, back)            
             sched.run()
             out.error('main(): scheduler down!')
-        else:
-            back.run()
-            out.info('main(): all tasks done')
     except Exception as e:
         out.exception('error: main', e)
 
