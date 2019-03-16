@@ -19,7 +19,7 @@ def environ_bool(key):
     v = os.environ.get(key)
     if v is None:
         return False
-    v = v.lower(v)
+    v = v.lower()
     return v != "0" and v != "false" and v != "no"
         
 def emoji(name):
