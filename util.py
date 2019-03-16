@@ -15,6 +15,13 @@ def environ(keys, header):
             print('{0}: {1} is not set'.format(header, k), file=sys.stderr)
     return ret
 
+def environ_bool(key):
+    v = os.environ.get(key)
+    if v is None:
+        return False
+    v = v.lower(v)
+    return v != "0" and v != "false" and v != "no"
+        
 def emoji(name):
     if name == 'ok':
         return ':white_check_mark:'

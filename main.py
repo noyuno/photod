@@ -47,13 +47,15 @@ class Scheduler():
 
 def main():
     envse = ['GOOGLE_OAUTH_CLIENT', 'GOOGLE_OAUTH_SECRET', 'DISCORDBOT', 'BASE_URL',
-             'S3_BUCKET', 'S3_PREFIX', 'SCHEDULE_TIME', 'SCHEDULE_WEEKDAY']
-
-    f = util.environ(envse, 'error')
+             'S3_BUCKET', 'S3_PREFIX']
 
     out = util.Output(logdir)
+    f = util.environ(envse, 'error')
     if f:
         out.error('error: some environment variables are not set. exiting.')
+        sys.exit(1)
+    if os.environ.get('ONESHOT') is None and (os.environ.get('SCHEDULE_TIME') is None or os.environ.get('SCHEDULE_WEEKDAY')):
+        out.error('error: environment variables ONESHOT or (SCHEDULE_TIME and SCHEDULE_WEEKDAY) must be set. exiting.')
         sys.exit(1)
 
     os.makedirs(catalogdir, exist_ok=True)
@@ -66,7 +68,8 @@ def main():
         cb = callback.Callback(asyncio.new_event_loop(), out, cred, callback_url)
         threading.Thread(target=cb.run, name='callback', daemon=True).start()
 
-        back = backup.Backup(out, cb, cred, os.environ['S3_BUCKET'], os.environ['S3_PREFIX'], catalogdir)
+        library = util.environ_bool('LIBRARY')
+        back = backup.Backup(out, cb, cred, os.environ['S3_BUCKET'], os.environ['S3_PREFIX'], catalogdir, library)
 
         if cred.load():
             out.info('using saved token')
@@ -76,7 +79,7 @@ def main():
             cred.wait_authorization()
             out.info('main(): authorized, email={}'.format(cred.email))
 
-        if os.environ.get('ONESHOT') is None:
+        if util.environ_bool('ONESHOT'):
             sched = Scheduler(None, out, back)            
             sched.run()
             out.error('main(): scheduler down!')
