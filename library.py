@@ -7,10 +7,10 @@ import requests
 import util
 
 class Library():
-    def __init__(self, out, starttime, basedir, credential, bucketname, bucketprefix):
+    def __init__(self, out, starttime, catalogdir, credential, bucketname, bucketprefix):
         self.out = out
         self.starttime = starttime
-        self.basedir = basedir
+        self.catalogdir = catalogdir
         self.credential = credential
 
         s3 = boto3.resource('s3')
@@ -19,13 +19,13 @@ class Library():
 
 
     def photo_catalog(self, id, name):
-        os.makedirs('{0}/catalog/{1}/albums'.format(self.basedir, self.starttime), exist_ok=True)
-        cat = open('{0}/catalog/{1}/albums/{2}'.format(self.basedir, self.starttime, 'library'), 'a', encoding='utf-8')
+        os.makedirs('{0}/catalog/{1}/albums'.format(self.catalogdir, self.starttime), exist_ok=True)
+        cat = open('{0}/catalog/{1}/albums/{2}'.format(self.catalogdir, self.starttime, 'library'), 'a', encoding='utf-8')
         cat.write('{0} {1}\n'.format(id, name))
         cat.close()
 
     def put_photo_catalog(self, prefix):
-        cat = open('{0}/catalog/{1}/albums/{2}'.format(self.basedir, self.starttime, 'library'), 'rb')
+        cat = open('{0}/catalog/{1}/albums/{2}'.format(self.catalogdir, self.starttime, 'library'), 'rb')
         self.bucket.Object(prefix).put(Body=cat)
         cat.close()
 
@@ -72,7 +72,7 @@ class Library():
         already = 0
         skip = 0
 
-        prefix = '/'.join([os.environ.get('S3_PREFIX'), self.credential.email, 'library', ''])
+        prefix = os.path.join(os.environ.get('S3_PREFIX'), self.credential.email, 'library', '')
         self.out.debug('prefix: {0}'.format(prefix))
         already_saved = [ o.key for o in self.bucket.objects.filter(Prefix=prefix)]
 
@@ -105,7 +105,7 @@ class Library():
             self.out.info('library-{}: count: {}, failure photos: {}'.format(page + 1, len(r.get('mediaItems')), failure_per_page))
             page += 1
 
-        catalog_prefix = '/'.join([os.environ.get('S3_PREFIX'), self.credential.email, 'catalog', 'library'])
+        catalog_prefix = os.path.join(os.environ.get('S3_PREFIX'), self.credential.email, 'catalog', 'library')
         self.out.debug('library: put catalog to={}'.format(catalog_prefix))
         self.put_photo_catalog(catalog_prefix)
 

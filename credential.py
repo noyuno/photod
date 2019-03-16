@@ -5,14 +5,14 @@ import time
 import json
 
 class Credential():
-    def __init__(self, out, oauth_client, oauth_secret, token_url, scope, redirect_url, authorization_base_url, token_dir):
+    def __init__(self, out, oauth_client, oauth_secret, token_url, scope, redirect_url, authorization_base_url, tokendir):
         self.out = out
         self.token_url = token_url
         self.oauth_client = oauth_client
         self.oauth_secret = oauth_secret
         self.scope = scope
         self.redirect_url = redirect_url
-        self.token_dir = token_dir
+        self.tokendir = tokendir
         self.authorization_base_url = authorization_base_url
         self.authorization_state = None
         self.redirect_response = None
@@ -34,7 +34,7 @@ class Credential():
         return authorization_url
 
     def load(self):
-        token_path = '/'.join([self.token_dir, 'token'])        
+        token_path = os.path.join(self.tokendir, 'token')
         if os.path.exists(token_path):
             with open(token_path, 'r') as fp:            
                 self.token = json.load(fp)
@@ -46,8 +46,8 @@ class Credential():
         # check refreshable token
         if token.get('refresh_token') is None:
             raise RuntimeError('This token is not refreshable. refresh_token not found.')
-        path = '/'.join([self.token_dir, 'token'])
-        os.makedirs(self.token_dir, exist_ok=True)
+        path = os.path.join(self.tokendir, 'token')
+        os.makedirs(self.tokendir, exist_ok=True)
         with open(path, 'w') as fp:
             json.dump(token, fp, indent=4, sort_keys=True)
 

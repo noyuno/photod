@@ -19,8 +19,9 @@ token_url = "https://www.googleapis.com/oauth2/v4/token"
 scope = ['https://www.googleapis.com/auth/photoslibrary.readonly',
          'https://www.googleapis.com/auth/userinfo.profile',
          'https://www.googleapis.com/auth/userinfo.email']
-basedir = '/data/photod'
-logdir = '/logs/photod'
+tokendir = '/data/photod/token'
+catalogdir = '/logs/photod/catalog'
+logdir = '/logs/photod/log'
 
 class Scheduler():
     def __init__(self, loop, out, backup):
@@ -55,17 +56,17 @@ def main():
         out.error('error: some environment variables are not set. exiting.')
         sys.exit(1)
 
-    os.makedirs(basedir, exist_ok=True)
+    os.makedirs(catalogdir, exist_ok=True)
 
     try:
         redirect_url = '{0}{1}'.format(os.environ['BASE_URL'], callback_url)
         cred = credential.Credential(out,
             os.environ['GOOGLE_OAUTH_CLIENT'], os.environ['GOOGLE_OAUTH_SECRET'],
-            token_url, scope, redirect_url, authorization_base_url, '/'.join([basedir, 'token']))
+            token_url, scope, redirect_url, authorization_base_url, tokendir)
         cb = callback.Callback(asyncio.new_event_loop(), out, cred, callback_url)
         threading.Thread(target=cb.run, name='callback', daemon=True).start()
 
-        back = backup.Backup(out, cb, cred, os.environ['S3_BUCKET'], os.environ['S3_PREFIX'], basedir)
+        back = backup.Backup(out, cb, cred, os.environ['S3_BUCKET'], os.environ['S3_PREFIX'], catalogdir)
 
         if cred.load():
             out.info('using saved token')

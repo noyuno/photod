@@ -38,7 +38,7 @@ def download():
     s3 = boto3.resource('s3')
     bucket = s3.Bucket(os.environ.get('S3_BUCKET'))
 
-    catalogPrefix = '/'.join([os.environ.get('S3_PREFIX'), os.environ.get('EMAIL'), 'catalog'])
+    catalogPrefix = os.path.join(os.environ.get('S3_PREFIX'), os.environ.get('EMAIL'), 'catalog')
     logger.debug('bucket: {0}, catalogPrefix: {1}'.format(
         os.environ.get('S3_BUCKET'), catalogPrefix))
     albums = bucket.Object(catalogPrefix + '/album').get()['Body'].read().decode('utf-8').split('\n')
@@ -67,7 +67,7 @@ def download():
         logger.info('{0}/{1}: {2} photos found in album "{3}"'.format(
             albumCurrent + 1, len(albums), len(photos), albumName))
 
-        albumDest = '/'.join([basedir, albumName])
+        albumDest = os.path.join(basedir, albumName)
         os.makedirs(albumDest, exist_ok=True)
         os.chmod(albumDest, 0o777)
         for photo in photos:
@@ -75,7 +75,7 @@ def download():
             photoName = photo.split(' ')[1]
             logger.debug('{0}/{1}-{2}/{3}: downloading photo, filename="{4}"'.format(
                 albumCurrent + 1, len(albums), photoCurrent + 1, len(photos), photoName))
-            src = '/'.join([os.environ.get('S3_PREFIX'), os.environ.get('EMAIL'), albumId, photoId])
+            src = os.path.join(os.environ.get('S3_PREFIX'), os.environ.get('EMAIL'), albumId, photoId)
 
             # replace '/' in photoName
             photoName = photoName.replace('/', '_')
@@ -83,7 +83,7 @@ def download():
             originalPhotoName = '.'.join(photoName.split('.')[:-1])
             extension = photoName.split('.')[-1]
             existsTryCount = 0
-            while os.path.exists('/'.join([basedir, albumName, photoName])):
+            while os.path.exists(os.path.join(basedir, albumName, photoName)):
                 # change filename
                 existsTryCount += 1
                 photoName = '{0}_{1}.{2}'.format(originalPhotoName, existsTryCount, extension)
@@ -92,7 +92,7 @@ def download():
                     albumCurrent + 1, len(albums), photoCurrent + 1, len(photos),
                     originalPhotoName, photoName))
 
-            dest = '/'.join([basedir, albumName, photoName])
+            dest = os.path.join(basedir, albumName, photoName)
             try:
                 bucket.Object(src).download_file(dest)
                 os.chmod(dest, 0o777)
