@@ -83,7 +83,7 @@ class Albums():
                 return 2
         return 0
 
-    def put_albums(self, r, albumCurrent, albumCount, album):
+    def put_albums(self, r, album_current, album_count, album):
         success_count = 0
         failure_count = 0
         already_count = 0
@@ -97,10 +97,10 @@ class Albums():
 
         if len(already_saved) > 0:
             self.out.debug('{0}/{1}: already exists: {2} photos found. first record={3}'.format(
-                albumCurrent, albumCount, len(already_saved), already_saved[0]))
+                album_current, album_count, len(already_saved), already_saved[0]))
         else:
             self.out.debug('{0}/{1}: not found that already saved photo'.format(
-                        albumCurrent, albumCount))
+                        album_current, album_count))
 
         self.album_catalog(album.get('id'), album.get('title'))
 
@@ -118,7 +118,7 @@ class Albums():
             failure_per_page = 0
             for item in rp.get('mediaItems'):
                 ret = self.put_photos(r, rp, already_saved,
-                                albumCurrent, albumCount, photo_current, photo_count,
+                                album_current, album_count, photo_current, photo_count,
                                 album, item, prefix)
                 if ret == 0:
                     success_count += 1
@@ -134,12 +134,12 @@ class Albums():
                     self.photo_catalog(album.get('id'), item.get('id'), item.get('filename'))
                 photo_current += 1
             self.out.debug('{}/{}-{}: count: {}, failure photos: {}'.format(
-                        albumCurrent, albumCount, page + 1, len(rp.get('mediaItems')), failure_per_page))
+                        album_current, album_count, page + 1, len(rp.get('mediaItems')), failure_per_page))
             page += 1
 
         catalog_prefix = os.path.join(self.bucketprefix, self.credential.email, 'catalog', 'albums', album.get('id'))
         self.out.debug('{0}/{1}: put photo catalog to={2}'.format(
-                    albumCurrent, albumCount, catalog_prefix))
+                    album_current, album_count, catalog_prefix))
         self.put_photo_catalog(self.bucket, catalog_prefix, album.get('id'))
 
         ret = 0
@@ -150,8 +150,8 @@ class Albums():
         else:
             ret = 1
             emoji = 'bad'
-        self.out.put('{0} {1}/{2} album {3}: total {4}, success {5}, already {6}, failure {7}\n'.format(
-            util.emoji(emoji), albumCurrent + 1, albumCount, album.get('title'),
+        self.out.put('{0} {1}/{2} album {3}: total {4}, success {5}, already {6}, failure {7}'.format(
+            util.emoji(emoji), album_current + 1, album_count, album.get('title'),
             album.get('mediaItemsCount'), success_count, already_count, failure_count))
         return ret
 
@@ -188,12 +188,12 @@ class Albums():
 
         success_all = False
         emoji = ''
-        if len(r.get('albums')) == success_albums:
+        if album_count == success_albums:
             emoji = 'ok'
             success_all = True
         else:
             emoji = 'bad'
         self.out.message('{0} finished: total {1}, success {2}, failure {3}\n'.format(
-            util.emoji(emoji), len(r.get('albums')), success_albums, failure_albums))
+            util.emoji(emoji), album_count, success_albums, failure_albums))
         if success_all == False:
             self.out.pop()
