@@ -54,7 +54,7 @@ def main():
     if f:
         out.error('error: some environment variables are not set. exiting.')
         sys.exit(1)
-    if os.environ.get('ONESHOT') is None and (os.environ.get('SCHEDULE_TIME') is None or os.environ.get('SCHEDULE_WEEKDAY')):
+    if os.environ.get('ONESHOT') is None and (os.environ.get('SCHEDULE_TIME') is None or os.environ.get('SCHEDULE_WEEKDAY') is None):
         out.error('error: environment variables ONESHOT or (SCHEDULE_TIME and SCHEDULE_WEEKDAY) must be set. exiting.')
         sys.exit(1)
 
