@@ -83,6 +83,9 @@ class Library():
                 r = self.credential.get('https://photoslibrary.googleapis.com/v1/mediaItems',
                         params={ 'pageSize': '100',
                                  'pageToken': r.get('nextPageToken')})
+            # mediaItems may not return values
+            if r.get('mediaItems') is None:
+                continue
             count += len(r.get('mediaItems'))
             failure_per_page = 0
             for item in r.get('mediaItems'):

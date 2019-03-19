@@ -40,13 +40,16 @@ def unixtimestrt(ut):
 
 
 class Output():
-    def __init__(self, logdir):
+    def __init__(self, logdir, debug):
         self._array = []
         os.makedirs(logdir, exist_ok=True)
         self.starttime = datetime.now().strftime('%Y%m%d-%H%M')
         logging.getLogger().setLevel(logging.WARNING)
         self.logger = logging.getLogger('photod')
-        self.logger.setLevel(logging.INFO)
+        if debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
         logFormatter = logging.Formatter(fmt='%(asctime)s %(levelname)s: %(message)s',
                                         datefmt='%Y%m%d-%H%M')
         fileHandler = logging.FileHandler('/{}/{}'.format(logdir, self.starttime))

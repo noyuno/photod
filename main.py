@@ -49,7 +49,7 @@ def main():
     envse = ['GOOGLE_OAUTH_CLIENT', 'GOOGLE_OAUTH_SECRET', 'DISCORDBOT', 'BASE_URL',
              'S3_BUCKET', 'S3_PREFIX']
 
-    out = util.Output(logdir)
+    out = util.Output(logdir, util.environ_bool('DEBUG'))
     f = util.environ(envse, 'error')
     if f:
         out.error('error: some environment variables are not set. exiting.')
@@ -68,8 +68,9 @@ def main():
         cb = callback.Callback(asyncio.new_event_loop(), out, cred, callback_url)
         threading.Thread(target=cb.run, name='callback', daemon=True).start()
 
+        album = util.environ_bool('ALBUM')
         library = util.environ_bool('LIBRARY')
-        back = backup.Backup(out, cb, cred, os.environ['S3_BUCKET'], os.environ['S3_PREFIX'], catalogdir, library)
+        back = backup.Backup(out, cb, cred, os.environ['S3_BUCKET'], os.environ['S3_PREFIX'], catalogdir, album, library)
 
         if cred.load():
             out.info('using saved token')

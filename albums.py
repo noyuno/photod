@@ -165,7 +165,10 @@ class Albums():
                 r = self.credential.get('https://photoslibrary.googleapis.com/v1/albums')
             else:
                 r = self.credential.get('https://photoslibrary.googleapis.com/v1/albums',
-                        params={'pageToken': r.get('nextPageToken') })
+                        params={'pageToken': r.get('nextPageToken')})
+            # albums may not return values
+            if r.get('albums') is None:
+                continue
             album_count += len(r.get('albums'))
             self.out.put('Albums.run(): {0} albums found in this page, nextPageToken={1}\n'.format(
                 len(r.get('albums')), r.get('nextPageToken')))

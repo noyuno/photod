@@ -19,7 +19,7 @@ import library
 import albums
 
 class Backup():
-    def __init__(self, out, callback, credential, bucketname, bucketprefix, catalogdir, library):
+    def __init__(self, out, callback, credential, bucketname, bucketprefix, catalogdir, album, library):
         self.out = out
         self.queued_message = []
         self.callback = callback
@@ -27,13 +27,15 @@ class Backup():
         self.bucketname = bucketname
         self.bucketprefix = bucketprefix
         self.catalogdir = catalogdir
+        self.album = album
         self.library = library
 
     def run(self):
         starttime = datetime.now().strftime('%Y%m%d-%H%M')
        
-        alb = albums.Albums(self.out, starttime, self.catalogdir, self.credential, self.bucketname, self.bucketprefix)
-        alb.run()
-        if library:
+        if self.album:
+            alb = albums.Albums(self.out, starttime, self.catalogdir, self.credential, self.bucketname, self.bucketprefix)
+            alb.run()
+        if self.library:
             lib = library.Library(self.out, starttime, self.catalogdir, self.credential, self.bucketname, self.bucketprefix)
             lib.run()
