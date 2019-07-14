@@ -40,8 +40,8 @@ A daemon that backup Google Photos albums to S3
             GOOGLE_OAUTH_SECRET: ${GOOGLE_OAUTH_SECRET}
             BASE_URL: "https://photos.${DOMAIN}"
             DISCORDBOT: "discordbot"
-            AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
-            AWS_SECRET_KEY: ${AWS_SECRET_KEY}
+            AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
             S3_BUCKET: ${S3_BUCKET}
             S3_PREFIX: mirror/photod
             AWS_REGION: ${AWS_REGION}
@@ -64,8 +64,8 @@ docker run --rm -it \
     -v $(pwd)/out:/data/photod \
     -v $(pwd):/opt/photod:ro \
     -v $(pwd)/logs:/logs/photod \
-    -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY \
-    -e AWS_SECRET_KEY=$AWS_SECRET_KEY \
+    -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+    -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     -e AWS_REGION=$AWS_REGION \
     -e S3_BUCKET=$S3_BUCKET \
     -e S3_PREFIX=mirror/photod \

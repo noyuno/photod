@@ -15,9 +15,8 @@ from datetime import datetime, timezone, timedelta
 
 import util
 
-basedir = '/data/photod'
+basebasedir = '/data/photod'
 logdir = '/logs/photod'
-os.makedirs(basedir, exist_ok=True)
 os.makedirs(logdir, exist_ok=True)
 starttime = datetime.now().strftime('%Y%m%d-%H%M')
 logging.getLogger().setLevel(logging.WARNING)
@@ -39,6 +38,8 @@ def download():
     bucket = s3.Bucket(os.environ.get('S3_BUCKET'))
 
     catalogPrefix = os.path.join(os.environ.get('S3_PREFIX'), os.environ.get('EMAIL'), 'catalog')
+    basedir = os.path.join(basebasedir, os.environ.get('EMAIL'))
+    os.makedirs(basedir, exist_ok=True)
     logger.debug('bucket: {0}, catalogPrefix: {1}'.format(
         os.environ.get('S3_BUCKET'), catalogPrefix))
     albums = bucket.Object(catalogPrefix + '/album').get()['Body'].read().decode('utf-8').split('\n')
